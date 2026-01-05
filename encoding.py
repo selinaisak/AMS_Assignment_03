@@ -1,3 +1,4 @@
+from enum import Enum
 import sys
 from pathlib import Path
 # pip install ffmpeg-python
@@ -10,9 +11,23 @@ import ffmpeg
 # https://medium.com/@aleksej.gudkov/ffmpeg-python-example-a-guide-to-using-ffmpeg-with-python-020cdb7733e7 #
 # https://trac.ffmpeg.org/wiki/Encode/AV1 #
 
+class Quality(Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+class Representation:
+    def __init__(self, resolution: tuple[int, int], framerate: float):
+        self.resolution = resolution
+        self.framerate = framerate
 
 TEST_SEQ_DIR = Path("test_sequences")
-AV1_DIR = Path("av1_sequences")
+DASH_DIR = Path("av1_dash")
+REPRESENTATIONS = {
+    Quality.HIGH:  Representation([3840, 2160], 60.0),
+    Quality.MEDIUM:  Representation([3840, 2160], 60.0),
+    Quality.LOW:  Representation([3840, 2160], 60.0)
+}
 
 ###### Helpers ######
 
@@ -27,7 +42,7 @@ def get_filename(path: Path):
 # encode the video with AV1 --> keep initial config
 def encode_av1(video: Path):
 
-    output = AV1_DIR / f"{get_filename(video)}.mp4"
+    output = DASH_DIR / f"{get_filename(video)}.mp4"
     print(f"Encoding: {video} -> {output}")
 
     try:
