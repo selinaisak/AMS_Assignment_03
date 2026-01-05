@@ -25,8 +25,8 @@ TEST_SEQ_DIR = Path("test_sequences")
 DASH_DIR = Path("av1_dash")
 REPRESENTATIONS = {
     Quality.HIGH:  Representation([3840, 2160], 60.0),
-    Quality.MEDIUM:  Representation([3840, 2160], 60.0),
-    Quality.LOW:  Representation([3840, 2160], 60.0)
+    Quality.MEDIUM:  Representation([1280, 720], 30.0),
+    Quality.LOW:  Representation([640, 360], 15.0)
 }
 
 ###### Helpers ######
