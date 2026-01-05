@@ -1,0 +1,109 @@
+<!-- SOURCES: 
+https://www.w3schools.com/html/html5_video.asp
+https://www.geeksforgeeks.org/javascript/how-to-get-all-html-content-from-domparser-excluding-the-outer-body-tag/
+https://www.w3schools.com/tags/ref_av_dom.asp
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Progressive Video Downloader</title>
+    <style>
+      html {
+        color-scheme: light dark;
+      }
+      body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+      }
+      p {
+        font-size: large;
+      }
+      select {
+        font-size: medium;
+        margin-bottom: 2em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Progressive Video Downloader</h1>
+
+    <p>Select a video to play:</p>
+    <select id="videoSelect"></select>
+    <video id="videoPlayer" width="640" height="360" controls>
+      <source id="videoSource" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+    <script>
+      const VIDEO_DIR = "/videos/";
+
+      // Use these elements to configure the player --> which video to play?
+      const videoSelect = document.getElementById("videoSelect");
+      const videoPlayer = document.getElementById("videoPlayer");
+      const videoSource = document.getElementById("videoSource");
+      const events = [
+        "waiting", // Fires when the video stops because it needs to buffer the next frame
+        "stalled", // Fires when the browser is trying to get media data, but data is not available
+        "playing", // Fires when the audio/video is playing after having been paused or stopped for buffering
+        "canplay", // Fires when the browser can start playing the audio/video
+        "canplaythrough", // Fires when the browser can play through the audio/video without stopping for buffering
+        "pause", // Fires when the audio/video has been paused
+      ];
+
+      fetch(VIDEO_DIR)
+        .then((response) => response.text())
+        .then((html) => {
+          // LOL super stupid mistake --> this will actually open the printing interface and attempt to print the page XD
+          //print(html);
+
+          // "Prints" the whole HTML list of the contents in /videos/ in the browser console
+          //console.log(html);
+
+          // Parse document and retrieve all video names
+          const parser = new DOMParser();
+          const parsedDocument = parser.parseFromString(html, "text/html");
+
+          // Get all files in /videos/ --> they are provided as links in the HTML list
+          const links = parsedDocument.querySelectorAll("a");
+
+          links.forEach((link) => {
+            // The file name is specified in the href attribute of the hyperlink element
+            const filename = link.getAttribute("href");
+
+            // Filter for .mp4 files --> only these are relevant for selection/downloading
+            if (filename && filename.endsWith(".mp4")) {
+              // Create selectable options based on the available videos on the server
+              const option = document.createElement("option");
+              option.value = VIDEO_DIR + filename;
+              option.text = filename;
+              videoSelect.appendChild(option);
+            }
+          });
+
+          // If there are any videos available --> load the first one
+          if (videoSelect.options.length > 0) {
+            // videoSelect.value is the first video --> because it is the default option in select box
+            videoSource.src = videoSelect.value;
+            // Only loading necessary (playback can still be started via play button)
+            videoPlayer.load();
+          }
+        });
+
+      // When a video was selected, load and play it
+      videoSelect.addEventListener("change", () => {
+        // Set the source video to the one that was selected
+        videoSource.src = videoSelect.value;
+        // Load video --> playback is not started automatically (but can be started via play button)
+        videoPlayer.load();
+        // Play video automatically upon selection
+        videoPlayer.play();
+      });
+
+      events.forEach((event) => {
+        videoPlayer.addEventListener(event, () => {
+          console.log(`${event} at ${videoPlayer.currentTime.toFixed(2)}s`);
+        });
+      });
+    </script>
+  </body>
+</html>
