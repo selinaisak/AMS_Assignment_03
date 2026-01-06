@@ -24,7 +24,7 @@ class Representation:
 TEST_SEQ_DIR = Path("test_sequences")
 DASH_DIR = Path("av1_dash")
 REPRESENTATIONS = {
-    Quality.HIGH:  Representation([3840, 2160], 60.0),
+    #Quality.HIGH:  Representation([3840, 2160], 60.0),
     Quality.MEDIUM:  Representation([1280, 720], 30.0),
     Quality.LOW:  Representation([640, 360], 15.0)
 }
@@ -42,15 +42,42 @@ def get_filename(path: Path):
 # encode the video with AV1 --> keep initial config
 def encode_av1(video: Path):
 
-    output_mpd = DASH_DIR / f"{get_filename(video)}.mpd"
+    video_name = get_filename(video)
+    out_dir = DASH_DIR / video_name
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output_mpd = out_dir / f"{video_name}.mpd"
+
+    input_stream = ffmpeg.input(str(video))
+
+    video_streams = []
+
+    for rep in REPRESENTATIONS.values():
+        w, h = rep.resolution
+        fps = rep.framerate
+
+        v = (
+            input_stream
+            .video
+            .filter("scale", w, h)
+            .filter("fps", fps=fps)
+        )
+
+        video_streams.append(v)
+
     print(f"Encoding: {video} -> {output_mpd}")
 
     try:
         (
             ffmpeg
-            .input(str(video))
-            .output(str(output_mpd), format="dash", vcodec="libsvtav1", seg_duration=5)
-            .run()
+            .output(
+                *video_streams,
+                str(output_mpd), 
+                format="dash", 
+                vcodec="libsvtav1", 
+                seg_duration=5,
+                adaptation_sets="id=0,streams=v",
+                an=None)
+            .run(overwrite_output=True)
         )
     except ffmpeg.Error as e:
         print(f"An error occurred: {e}")
