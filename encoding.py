@@ -42,14 +42,14 @@ def get_filename(path: Path):
 # encode the video with AV1 --> keep initial config
 def encode_av1(video: Path):
 
-    output = DASH_DIR / f"{get_filename(video)}.mp4"
-    print(f"Encoding: {video} -> {output}")
+    output_mpd = DASH_DIR / f"{get_filename(video)}.mpd"
+    print(f"Encoding: {video} -> {output_mpd}")
 
     try:
         (
             ffmpeg
             .input(str(video))
-            .output(str(output), vcodec="libsvtav1")
+            .output(str(output_mpd), format="dash", vcodec="libsvtav1", seg_duration=5)
             .run()
         )
     except ffmpeg.Error as e:
