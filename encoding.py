@@ -65,6 +65,8 @@ def encode_representation(
                 vcodec="libsvtav1",
                 preset=8,
                 vf=f"scale={width}:{height},fps={fps}",
+                # adjust GOP size to segment size
+                #g=round(fps * 5),
                 movflags="+frag_keyframe+empty_moov+default_base_moof",
                 an=None,   # no audio
             )
@@ -88,7 +90,7 @@ def dash_mux(
         (out_dir / QUALITY_IDS.get(q)).mkdir(parents=True, exist_ok=True)
 
     # grab the paths of the fragmented MP4s
-    inputs = [ffmpeg.input(str(p.resolve())) for p in encoded_mp4s]
+    inputs = [ffmpeg.input(str(p.resolve())).video for p in encoded_mp4s]
 
     # save current working directory so we can return later
     original_cwd = os.getcwd()
@@ -96,22 +98,28 @@ def dash_mux(
     # switch cwd to the output directory (otherwise ffmpeg cannot find the correct files?)
     os.chdir(out_dir)
     print(f"Current CWD: {os.getcwd()}")
-    (
-        ffmpeg
-        .output(
+    #stream_indices = ",".join(QUALITY_IDS.values())
+    #print("INDICES: " + stream_indices)
+    
+    out = ffmpeg.output(
             *inputs,
             str((out_dir / mpd_name).resolve()),
             format="dash",
             vcodec="copy",  
             #use_template=1,
             #use_timeline=1,
+            an=None, 
+            sn=None,
             seg_duration=5,
-            adaptation_sets="id=0,streams=v",
+            adaptation_sets= "id=0,streams=v",
             init_seg_name="$RepresentationID$/init.mp4",
             media_seg_name="$RepresentationID$/chunk_$Number%05d$.m4s",
         )
-        .run(overwrite_output=True)
-    )
+    #for i in range(len(inputs)):
+    #    out = out.global_args("-map", f"{i}:v")
+    
+    out.run(overwrite_output=True)
+    
     os.chdir(original_cwd)
 
 # dashify the passed video
@@ -132,7 +140,7 @@ def dashify(video: Path):
             output_mp4=out_mp4,
             width=rep.resolution[0],
             height=rep.resolution[1],
-            fps=rep.framerate,
+            fps=rep.framerate
         )
 
         encoded_mp4s.append(out_mp4)
