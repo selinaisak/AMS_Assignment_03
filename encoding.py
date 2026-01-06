@@ -24,6 +24,7 @@ class Representation:
 
 TEST_SEQ_DIR = Path("test_sequences")
 DASH_DIR = Path("av1_dash")
+ENCODED_DIR = Path("av1_sequences")
 REPRESENTATIONS = {
     Quality.LOW:  Representation([640, 360], 15.0),
     Quality.MEDIUM:  Representation([1280, 720], 30.0),
@@ -46,6 +47,108 @@ def get_files(path: Path):
 def get_filename(path: Path):
     return path.stem
 
+# encode representations separately first into fragmented MP4s
+def encode_representation(
+    input_video: Path,
+    output_mp4: Path,
+    width: int,
+    height: int,
+    fps: float,
+):
+    output_mp4.parent.mkdir(parents=True, exist_ok=True)
+
+    try: (
+            ffmpeg
+            .input(str(input_video.resolve()))
+            .output(
+                str(output_mp4),
+                vcodec="libsvtav1",
+                preset=8,
+                vf=f"scale={width}:{height},fps={fps}",
+                movflags="+frag_keyframe+empty_moov+default_base_moof",
+                an=None,   # no audio
+            )
+            .run(overwrite_output=True)
+    )
+    except ffmpeg.Error as e:
+        print(f"An error occurred: {e}")
+
+# multiplex representations --> create 1 MPD for all representations
+def dash_mux(
+    encoded_mp4s: list[Path],
+    out_dir: Path,
+    mpd_name: str,
+):
+    out_dir = out_dir.resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create rep directories
+    for q in REPRESENTATIONS.keys():
+        # make the directory for each quality level where segments are saved
+        (out_dir / QUALITY_IDS.get(q)).mkdir(parents=True, exist_ok=True)
+
+    # grab the paths of the fragmented MP4s
+    inputs = [ffmpeg.input(str(p.resolve())) for p in encoded_mp4s]
+
+    # save current working directory so we can return later
+    original_cwd = os.getcwd()
+    
+    # switch cwd to the output directory (otherwise ffmpeg cannot find the correct files?)
+    os.chdir(out_dir)
+    print(f"Current CWD: {os.getcwd()}")
+    (
+        ffmpeg
+        .output(
+            *inputs,
+            str((out_dir / mpd_name).resolve()),
+            format="dash",
+            vcodec="copy",  
+            #use_template=1,
+            #use_timeline=1,
+            seg_duration=5,
+            adaptation_sets="id=0,streams=v",
+            init_seg_name="$RepresentationID$/init.mp4",
+            media_seg_name="$RepresentationID$/chunk_$Number%05d$.m4s",
+        )
+        .run(overwrite_output=True)
+    )
+    os.chdir(original_cwd)
+
+# dashify the passed video
+def dashify(video: Path):
+    encoded_mp4s = []
+    video_name = get_filename(video)
+
+    # build directories for the fragmented MP4s per video per representation
+    (ENCODED_DIR / video_name).mkdir(parents=True, exist_ok=True)
+
+    for q, rep in REPRESENTATIONS.items():
+        # name the files after their quality 'name'
+        out_mp4 = ENCODED_DIR / video_name / f"{q.name}.mp4"
+
+        # only change resolution and framerate per representation
+        encode_representation(
+            input_video=video,
+            output_mp4=out_mp4,
+            width=rep.resolution[0],
+            height=rep.resolution[1],
+            fps=rep.framerate,
+        )
+
+        encoded_mp4s.append(out_mp4)
+
+    # pass fragmented MP4s to muxer
+    dash_mux(
+    encoded_mp4s=encoded_mp4s,
+    out_dir=DASH_DIR / video_name,
+    mpd_name=f"{video_name}.mpd"
+)
+
+# dashify all videos
+def dashify_all(videos):
+    for video in videos:
+        dashify(video)
+
 # encode the video with AV1 for DASH
 def encode_av1(video: Path):
 
@@ -58,7 +161,6 @@ def encode_av1(video: Path):
 
     # use 'resolve' to get absolute path
     output_mpd = (out_dir / f"{video_name}.mpd").resolve()
-    #output_mpd.parent.mkdir(parents=True, exist_ok=True)
 
     # use 'resolve' to get absolute path
     input_stream = ffmpeg.input(str(video.resolve()))
@@ -99,6 +201,7 @@ def encode_av1(video: Path):
                 str(output_mpd), 
                 format="dash", 
                 vcodec="libsvtav1", 
+                preset=8,
                 seg_duration=5,
                 adaptation_sets="id=0,streams=v",
                 an=None,
@@ -133,7 +236,7 @@ if __name__ == "__main__":
         if not video_path.exists():
             print(f"File not found: {video_path}")
             sys.exit(1)
-        encode_av1(video_path)
+        dashify(video_path)
 
     elif len(sys.argv) > 2:
         print(
@@ -145,4 +248,4 @@ if __name__ == "__main__":
     else:
         # Encode all videos
         videos = get_files(TEST_SEQ_DIR)
-        encode_av1_all(videos)
+        dashify_all(videos)
