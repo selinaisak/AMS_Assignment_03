@@ -75,23 +75,30 @@ https://dashif.org/dash.js/pages/quickstart/index.html
           // Get all files in /videos/ --> they are provided as links in the HTML list
           const links = parsedDocument.querySelectorAll("a");
 
+          /*** Add the demo video as another option because why not ***/
+          var option = document.createElement("option");
+          option.value = "https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd";
+          option.text = "Dash.js demo";
+          videoSelect.appendChild(option);
+
           links.forEach((link) => {
             // The file name is specified in the href attribute of the hyperlink element
             const videoname = link.getAttribute("href");
             console.log(videoname);
 
-            /*** An ugle solution to an for now ugly problem lol ***/
+            /*** An ugly solution to an for now ugly problem lol ***/
             // Filter for video names (numbers only) --> only these are relevant for selection/downloading
             // build mpd file name based on that
             if (videoname && videoname != "" && videoname.match("[0-9]+")) {
               // Create selectable options based on the available videos on the server
               const filename = videoname.replace("\/", "") + ".mpd";
-              const option = document.createElement("option");
+              option = document.createElement("option");
               option.value = DASH_DIR + videoname + "/" + filename;
               option.text = filename;
               videoSelect.appendChild(option);
             }
-          });
+          }
+        );
 
           // If there are any videos available --> load the first one
           if (videoSelect.options.length > 0) {
