@@ -52,12 +52,22 @@ https://dashif.org/dash.js/pages/quickstart/index.html
         "pause", // Fires when the audio/video has been paused
       ];
 
-      (function () {
+      /*(function () {
         var url =
           "https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd";
         var player = dashjs.MediaPlayer().create();
         player.initialize(document.querySelector("#videoPlayer"), url, true);
-      })();
+      })();*/
+
+      var player = dashjs.MediaPlayer().create();
+
+      function play(mpdUrl) {
+        player.initialize(
+          videoPlayer,
+          mpdUrl,
+          false // set true for autoplay
+        );
+      }
 
       fetch(DASH_DIR)
         .then((response) => response.text())
@@ -77,7 +87,8 @@ https://dashif.org/dash.js/pages/quickstart/index.html
 
           /*** Add the demo video as another option because why not ***/
           var option = document.createElement("option");
-          option.value = "https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd";
+          option.value =
+            "https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd";
           option.text = "Dash.js demo";
           videoSelect.appendChild(option);
 
@@ -97,15 +108,15 @@ https://dashif.org/dash.js/pages/quickstart/index.html
               option.text = filename;
               videoSelect.appendChild(option);
             }
-          }
-        );
+          });
 
           // If there are any videos available --> load the first one
           if (videoSelect.options.length > 0) {
             // videoSelect.value is the first video --> because it is the default option in select box
             //videoSource.src = videoSelect.value;
             // Only loading necessary (playback can still be started via play button)
-            videoPlayer.load();
+            //videoPlayer.play();
+            play(videoSelect.value);
           }
         });
 
@@ -113,10 +124,12 @@ https://dashif.org/dash.js/pages/quickstart/index.html
       videoSelect.addEventListener("change", () => {
         // Set the source video to the one that was selected
         //videoSource.src = videoSelect.value;
+        const mpdUrl = videoSelect.value
         // Load video --> playback is not started automatically (but can be started via play button)
-        videoPlayer.load();
+        //videoPlayer.load();
         // Play video automatically upon selection
-        videoPlayer.play();
+        //videoPlayer.play();
+        play(mpdUrl);
       });
 
       events.forEach((event) => {
