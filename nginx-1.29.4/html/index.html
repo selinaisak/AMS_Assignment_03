@@ -26,7 +26,7 @@ https://www.w3schools.com/tags/ref_av_dom.asp
     </style>
   </head>
   <body>
-    <h1>Progressive Video Downloader</h1>
+    <h1>DASH PLAYER</h1>
 
     <p>Select a video to play:</p>
     <select id="videoSelect"></select>
@@ -35,7 +35,7 @@ https://www.w3schools.com/tags/ref_av_dom.asp
       Your browser does not support the video tag.
     </video>
     <script>
-      const VIDEO_DIR = "/videos/";
+      const DASH_DIR = "/videos/";
 
       // Use these elements to configure the player --> which video to play?
       const videoSelect = document.getElementById("videoSelect");
@@ -50,7 +50,7 @@ https://www.w3schools.com/tags/ref_av_dom.asp
         "pause", // Fires when the audio/video has been paused
       ];
 
-      fetch(VIDEO_DIR)
+      fetch(DASH_DIR)
         .then((response) => response.text())
         .then((html) => {
           // LOL super stupid mistake --> this will actually open the printing interface and attempt to print the page XD
@@ -68,13 +68,17 @@ https://www.w3schools.com/tags/ref_av_dom.asp
 
           links.forEach((link) => {
             // The file name is specified in the href attribute of the hyperlink element
-            const filename = link.getAttribute("href");
+            const videoname = link.getAttribute("href");
+            console.log(videoname)
 
-            // Filter for .mp4 files --> only these are relevant for selection/downloading
-            if (filename && filename.endsWith(".mp4")) {
+            /*** An ugle solution to an for now ugly problem lol ***/
+            // Filter for video names (numbers only) --> only these are relevant for selection/downloading
+            // build mpd file name based on that
+            if (videoname && videoname != "" && videoname.match('[0-9]+')) {
               // Create selectable options based on the available videos on the server
+              const filename = videoname.replace("\/", "") + ".mpd"
               const option = document.createElement("option");
-              option.value = VIDEO_DIR + filename;
+              option.value = DASH_DIR + videoname + "/" +  filename;
               option.text = filename;
               videoSelect.appendChild(option);
             }
