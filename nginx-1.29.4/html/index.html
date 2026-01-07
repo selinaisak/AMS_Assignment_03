@@ -7,7 +7,7 @@ https://dashif.org/dash.js/pages/quickstart/index.html
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Progressive Video Downloader</title>
+    <title>Dash Player</title>
     <style>
       html {
         color-scheme: light dark;
@@ -42,7 +42,6 @@ https://dashif.org/dash.js/pages/quickstart/index.html
       // Use these elements to configure the player --> which video to play?
       const videoSelect = document.getElementById("videoSelect");
       const videoPlayer = document.getElementById("videoPlayer");
-      //const videoSource = document.getElementById("videoSource");
       const events = [
         "waiting", // Fires when the video stops because it needs to buffer the next frame
         "stalled", // Fires when the browser is trying to get media data, but data is not available
@@ -61,11 +60,11 @@ https://dashif.org/dash.js/pages/quickstart/index.html
 
       var player = dashjs.MediaPlayer().create();
 
-      function play(mpdUrl) {
+      function play(mpdUrl, autoplay){
         player.initialize(
           videoPlayer,
           mpdUrl,
-          false // set true for autoplay
+          autoplay
         );
       }
 
@@ -92,8 +91,9 @@ https://dashif.org/dash.js/pages/quickstart/index.html
           option.text = "Dash.js demo";
           videoSelect.appendChild(option);
 
+          /*** Go through all 'links' provided by the HTML file from NGINX's autoindexing ***/
           links.forEach((link) => {
-            // The file name is specified in the href attribute of the hyperlink element
+            // The video name is specified in the href attribute of the hyperlink element
             const videoname = link.getAttribute("href");
             console.log(videoname);
 
@@ -113,23 +113,22 @@ https://dashif.org/dash.js/pages/quickstart/index.html
           // If there are any videos available --> load the first one
           if (videoSelect.options.length > 0) {
             // videoSelect.value is the first video --> because it is the default option in select box
-            //videoSource.src = videoSelect.value;
-            // Only loading necessary (playback can still be started via play button)
+            // Only loading --> no autoplay here (playback can still be started via play button)
             //videoPlayer.play();
-            play(videoSelect.value);
+            play(videoSelect.value, false);
           }
         });
 
       // When a video was selected, load and play it
       videoSelect.addEventListener("change", () => {
         // Set the source video to the one that was selected
-        //videoSource.src = videoSelect.value;
+        // videoSource.src = videoSelect.value;
         const mpdUrl = videoSelect.value
         // Load video --> playback is not started automatically (but can be started via play button)
-        //videoPlayer.load();
+        // videoPlayer.load();
         // Play video automatically upon selection
-        //videoPlayer.play();
-        play(mpdUrl);
+        // videoPlayer.play();
+        play(mpdUrl, true);
       });
 
       events.forEach((event) => {
