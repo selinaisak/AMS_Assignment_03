@@ -2,6 +2,7 @@
 https://www.w3schools.com/html/html5_video.asp
 https://www.geeksforgeeks.org/javascript/how-to-get-all-html-content-from-domparser-excluding-the-outer-body-tag/
 https://www.w3schools.com/tags/ref_av_dom.asp
+https://dashif.org/dash.js/pages/quickstart/index.html
 -->
 <!DOCTYPE html>
 <html>
@@ -31,16 +32,17 @@ https://www.w3schools.com/tags/ref_av_dom.asp
     <p>Select a video to play:</p>
     <select id="videoSelect"></select>
     <video id="videoPlayer" width="640" height="360" controls>
-      <source id="videoSource" type="video/mp4" />
+      <!-- no source tag needed, dash.js handles the loading of the MPD -->
       Your browser does not support the video tag.
     </video>
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
     <script>
       const DASH_DIR = "/videos/";
 
       // Use these elements to configure the player --> which video to play?
       const videoSelect = document.getElementById("videoSelect");
       const videoPlayer = document.getElementById("videoPlayer");
-      const videoSource = document.getElementById("videoSource");
+      //const videoSource = document.getElementById("videoSource");
       const events = [
         "waiting", // Fires when the video stops because it needs to buffer the next frame
         "stalled", // Fires when the browser is trying to get media data, but data is not available
@@ -49,6 +51,13 @@ https://www.w3schools.com/tags/ref_av_dom.asp
         "canplaythrough", // Fires when the browser can play through the audio/video without stopping for buffering
         "pause", // Fires when the audio/video has been paused
       ];
+
+      (function () {
+        var url =
+          "https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd";
+        var player = dashjs.MediaPlayer().create();
+        player.initialize(document.querySelector("#videoPlayer"), url, true);
+      })();
 
       fetch(DASH_DIR)
         .then((response) => response.text())
@@ -69,16 +78,16 @@ https://www.w3schools.com/tags/ref_av_dom.asp
           links.forEach((link) => {
             // The file name is specified in the href attribute of the hyperlink element
             const videoname = link.getAttribute("href");
-            console.log(videoname)
+            console.log(videoname);
 
             /*** An ugle solution to an for now ugly problem lol ***/
             // Filter for video names (numbers only) --> only these are relevant for selection/downloading
             // build mpd file name based on that
-            if (videoname && videoname != "" && videoname.match('[0-9]+')) {
+            if (videoname && videoname != "" && videoname.match("[0-9]+")) {
               // Create selectable options based on the available videos on the server
-              const filename = videoname.replace("\/", "") + ".mpd"
+              const filename = videoname.replace("\/", "") + ".mpd";
               const option = document.createElement("option");
-              option.value = DASH_DIR + videoname + "/" +  filename;
+              option.value = DASH_DIR + videoname + "/" + filename;
               option.text = filename;
               videoSelect.appendChild(option);
             }
@@ -87,7 +96,7 @@ https://www.w3schools.com/tags/ref_av_dom.asp
           // If there are any videos available --> load the first one
           if (videoSelect.options.length > 0) {
             // videoSelect.value is the first video --> because it is the default option in select box
-            videoSource.src = videoSelect.value;
+            //videoSource.src = videoSelect.value;
             // Only loading necessary (playback can still be started via play button)
             videoPlayer.load();
           }
@@ -96,7 +105,7 @@ https://www.w3schools.com/tags/ref_av_dom.asp
       // When a video was selected, load and play it
       videoSelect.addEventListener("change", () => {
         // Set the source video to the one that was selected
-        videoSource.src = videoSelect.value;
+        //videoSource.src = videoSelect.value;
         // Load video --> playback is not started automatically (but can be started via play button)
         videoPlayer.load();
         // Play video automatically upon selection
